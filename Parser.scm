@@ -26,7 +26,8 @@
   ((Q.Parser.combine Q.Parser.parseAdd
 		     Q.Parser.parseApp
 		     Q.Parser.parseVar
-		     Q.Parser.parseInt)
+		     Q.Parser.parseInt
+		     Q.Parser.parseBracket)
    tokens
    kSucc
    kFail
@@ -36,7 +37,8 @@
 (define (Q.Parser.parseAdd tokens kSucc kFail kErr)
   (define parseOperand (Q.Parser.combine Q.Parser.parseApp
 					 Q.Parser.parseVar
-					 Q.Parser.parseInt))
+					 Q.Parser.parseInt
+					 Q.Parser.parseBracket))
 
   (define parseOperator (Q.curry Q.Parser.parseToken Q.Token.Plus?))
 
@@ -75,10 +77,12 @@
 
 
 (define (Q.Parser.parseApp tokens kSucc kFail kErr)
-  (define parseFunc (Q.Parser.combine Q.Parser.parseVar))
+  (define parseFunc (Q.Parser.combine Q.Parser.parseVar
+				      Q.Parser.parseBracket))
 
   (define parseArg (Q.Parser.combine Q.Parser.parseVar
-				     Q.Parser.parseInt))
+				     Q.Parser.parseInt
+				     Q.Parser.parseBracket))
 
   (define (parseArgs tokens kSucc kFail kErr)
     (parseArg tokens
@@ -95,13 +99,14 @@
 
   (parseFunc tokens
 	     (lambda (f ts)
-	       (parseArgs ts
-			  (lambda (as ts)
-			    (kSucc (Q.fold Q.Expr.App f as)
-				   ts))
-			  kFail
-			  (lambda _
-			    (kFail tokens))))
+	       (if (null? ts)
+		   (kFail tokens)
+		   (parseArgs ts
+			      (lambda (as ts)
+				(kSucc (Q.fold Q.Expr.App f as)
+				       ts))
+			      kFail
+			      kErr)))
 	     kFail
 	     kErr))
 
@@ -126,6 +131,35 @@
 	  (kSucc (Q.Expr.Int (Q.Token.Int:value (car tokens)))
 		 (cdr tokens))
 	  (kFail tokens))))
+
+(define (Q.Parser.parseBracket tokens kSucc kFail kErr)
+  (Q.Parser.parseToken Q.Token.LP?
+		       tokens
+		       (lambda (_ ts)
+			 (Q.Parser.parseExpr ts
+					     (lambda (expr ts)
+					       (if (null? ts)
+						   (kErr "Missing )"
+							 ts
+							 (lambda _ #f))
+						   (Q.Parser.parseToken Q.Token.RP?
+									ts
+									(lambda (_ ts)
+									  (kSucc expr ts))
+									(lambda _
+									  (kErr "Missing )"
+										ts
+										(lambda _ #f)))
+									kErr)))
+					     (lambda _
+					       (kErr "Missing expr"
+						     ts
+						     (lambda _ #f)))
+					     kErr))
+		       kFail
+		       kErr))
+
+
 
 (define (Q.Parser.combine p . ps)
   (if (null? ps)
@@ -180,3 +214,14 @@
 	  (kSucc (car tokens)
 		 (cdr tokens))
 	  (kFail tokens))))
+
+
+
+(define (Q.Parser.trace)
+  (trace Q.Parser.parseExpr
+	 Q.Parser.parseAdd
+	 Q.Parser.parseApp
+	 Q.Parser.parseVar
+	 Q.Parser.parseInt
+	 Q.Parser.parseBracket
+	 Q.Parser.parseToken))
