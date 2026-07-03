@@ -1,22 +1,36 @@
 
 
 
-
-
-
-
-
-
-
-
-
+(define (Q.Parser.parse tokens)
+  (Q.Parser.parseExpr tokens
+		      (lambda (expr ts)
+			(if (null? ts)
+			    expr
+			    (error 'Q.Parser.parse "Unconsumed tokens" ts)))
+		      (lambda (ts)
+			(error 'Q.Parser.parse "Could not parse" ts))
+		      (lambda (msg ts resume)
+			(display "ERROR: ")
+			(display msg)
+			(newline)
+			(resume ts))))
 
 
 
 ;; kSucc : Q.Expr -> [Q.Token] -> _
 ;; kFail : [Q.Token] -> _
-;; kErr : [string] -> [Q.Token] -> ([Q.Token] -> _) -> _
+;; kErr : string -> [Q.Token] -> ([Q.Token] -> _) -> _
 
+
+(define (Q.Parser.parseExpr tokens kSucc kFail kErr)
+  ((Q.Parser.combine Q.Parser.parseAdd
+		     Q.Parser.parseApp
+		     Q.Parser.parseVar
+		     Q.Parser.parseInt)
+   tokens
+   kSucc
+   kFail
+   kErr))
 
 
 (define (Q.Parser.parseAdd tokens kSucc kFail kErr)
@@ -25,7 +39,6 @@
 					 Q.Parser.parseInt))
 
   (define parseOperator (Q.curry Q.Parser.parseToken Q.Token.Plus?))
-
 
   (parseOperand tokens
 		(lambda (lhs ts)
@@ -43,12 +56,12 @@
 							       ts))
 						       (lambda (ts)
 							 (if (Q.Token.Plus? (car ts))
-							     (kErr '("Consecutive +'s, skipping")
+							     (kErr "Consecutive +'s, skipping"
 								   ts
 								   (lambda _
 								     (loop expr
 									   ts)))
-							     (kErr '("Could not parse rhs")
+							     (kErr "Could not parse rhs"
 								   ts
 								   (lambda _ #f))))
 						       kErr))
@@ -59,7 +72,6 @@
 				       kErr))))
 		kFail
 		kErr))
-
 
 
 (define (Q.Parser.parseApp tokens kSucc kFail kErr)
@@ -97,7 +109,7 @@
 
 (define (Q.Parser.parseVar tokens kSucc kFail kErr)
   (if (null? tokens)
-      (kErr '("Unexpected EOF")
+      (kErr "Unexpected EOF"
 	    tokens
 	    (lambda (tokens) #f))
       (if (Q.Token.Ident? (car tokens))
@@ -107,7 +119,7 @@
 
 (define (Q.Parser.parseInt tokens kSucc kFail kErr)
   (if (null? tokens)
-      (kErr '("Unexpected EOF")
+      (kErr "Unexpected EOF"
 	    tokens
 	    (lambda (tokens) #f))
       (if (Q.Token.Int? (car tokens))
@@ -161,7 +173,7 @@
 
 (define (Q.Parser.parseToken token? tokens kSucc kFail kErr)
   (if (null? tokens)
-      (kErr '("Unexpected EOF")
+      (kErr "Unexpected EOF"
 	    tokens
 	    (lambda (tokens) #f))
       (if (token? (car tokens))
