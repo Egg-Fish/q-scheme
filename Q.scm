@@ -1,4 +1,5 @@
 (load "Token.scm")
+(load "Token/Arr.scm")
 (load "Token/Plus.scm")
 (load "Token/Minus.scm")
 (load "Token/Star.scm")
@@ -8,3 +9,8 @@
 (load "Token/Int.scm")
 
 (load "Lexer.scm")
+
+(load "Expr.scm")
+(load "Expr/Add.scm")
+(load "Expr/Var.scm")
+(load "Expr/Int.scm")
