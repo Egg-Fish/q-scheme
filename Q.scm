@@ -1,0 +1,10 @@
+(load "Token.scm")
+(load "Token/Plus.scm")
+(load "Token/Minus.scm")
+(load "Token/Star.scm")
+(load "Token/LP.scm")
+(load "Token/RP.scm")
+(load "Token/Ident.scm")
+(load "Token/Int.scm")
+
+(load "Lexer.scm")
