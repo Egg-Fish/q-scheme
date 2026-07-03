@@ -1,10 +1,12 @@
 (define (Q.Expr? v)
   (or (Q.Expr.Add? v)
+      (Q.Expr.App? v)
       (Q.Expr.Var? v)
       (Q.Expr.Int? v)))
 
 (define (Q.Expr?? v)
   (or (Q.Expr.Add?? v)
+      (Q.Expr.App?? v)
       (Q.Expr.Var?? v)
       (Q.Expr.Int?? v)))
 
@@ -17,6 +19,8 @@
   (cond
    [(Q.Expr.Add? e)
     (Q.Expr.Add->string e)]
+   [(Q.Expr.App? e)
+    (Q.Expr.App->string e)]
    [(Q.Expr.Var? e)
     (Q.Expr.Var->string e)]
    [(Q.Expr.Int? e)
