@@ -42,6 +42,7 @@
 	 [rhsStr (Q.Expr->string rhs)])
     (when #f ;; TODO 
       (set! lhsStr (string-append "(" lhsStr ")")))
-    (when (or (Q.Expr.Add? rhs))
+    (when (or (Q.Expr.Add? rhs)
+	      (Q.Expr.Sub? rhs))
       (set! rhsStr (string-append "(" rhsStr ")")))
     (string-append lhsStr " + " rhsStr)))
