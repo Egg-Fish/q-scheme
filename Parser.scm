@@ -1,227 +1,159 @@
 
-
-
 (define (Q.Parser.parse tokens)
-  (Q.Parser.parseExpr tokens
-		      (lambda (expr ts)
-			(if (null? ts)
-			    expr
-			    (error 'Q.Parser.parse "Unconsumed tokens" ts)))
-		      (lambda (ts)
-			(error 'Q.Parser.parse "Could not parse" ts))
-		      (lambda (msg ts resume)
-			(display "ERROR: ")
-			(display msg)
-			(newline)
-			(resume ts))))
+  (Q.Parser.parseAddSub tokens
+			(lambda (expr tokens)
+			  expr)
+			(lambda (msg tokens resume)
+			  (display msg)
+			  (newline)
+			  (resume))))
 
 
-
-;; kSucc : Q.Expr -> [Q.Token] -> _
-;; kFail : [Q.Token] -> _
-;; kErr : string -> [Q.Token] -> ([Q.Token] -> _) -> _
-
-
-(define (Q.Parser.parseExpr tokens kSucc kFail kErr)
-  ((Q.Parser.combine Q.Parser.parseAdd
-		     Q.Parser.parseApp
-		     Q.Parser.parseVar
-		     Q.Parser.parseInt
-		     Q.Parser.parseBracket)
-   tokens
-   kSucc
-   kFail
-   kErr))
-
-
-(define (Q.Parser.parseAdd tokens kSucc kFail kErr)
-  (define parseOperand (Q.Parser.combine Q.Parser.parseApp
-					 Q.Parser.parseVar
-					 Q.Parser.parseInt
-					 Q.Parser.parseBracket))
-
-  (define parseOperator (Q.curry Q.Parser.parseToken Q.Token.Plus?))
-
+(define (Q.Parser.parseBinop tokens
+			     parseOperand
+			     parseOperator
+			     kSuccess
+			     kError)
   (parseOperand tokens
-		(lambda (lhs ts)
+		(lambda (lhs tokens)
 		  (let loop ([expr lhs]
-			     [ts ts])
-		    (if (null? ts)
-			(if (Q.Expr.Add? expr)
-			    (kSucc expr ts)
-			    (kFail tokens))
-			(parseOperator ts
-				       (lambda (_ ts)
-					 (parseOperand ts
-						       (lambda (e ts)
-							 (loop (Q.Expr.Add expr e)
-							       ts))
-						       (lambda (ts)
-							 (if (Q.Token.Plus? (car ts))
-							     (kErr "Consecutive +'s, skipping"
-								   ts
-								   (lambda _
-								     (loop expr
-									   ts)))
-							     (kErr "Could not parse rhs"
-								   ts
-								   (lambda _ #f))))
-						       kErr))
-				       (lambda _
-					 (if (Q.Expr.Add? expr)
-					     (kSucc expr ts)
-					     (kFail tokens)))
-				       kErr))))
-		kFail
-		kErr))
+			     [tokens tokens])
+		    (parseOperator tokens
+				   (lambda (op t tokens)
+				     (parseOperand tokens
+						   (lambda (rhs tokens)
+						     (loop (op expr rhs)
+							   tokens))
+						   (lambda (msg tokens resume)
+						     (kError (list (string-append "While parsing RHS of "
+										  (Q.Expr->string expr)
+										  " "
+										  (Q.Token->string t))
+								   msg)
+							     tokens
+							     (lambda ()
+							       (loop expr
+								     tokens))))))
+				   (lambda _
+				     (kSuccess expr
+					       tokens)))))
+		(lambda (msg tokens resume)
+		  (kError (list "While parsing LHS"
+				msg)
+			  tokens
+			  resume))))
 
 
-(define (Q.Parser.parseApp tokens kSucc kFail kErr)
-  (define parseFunc (Q.Parser.combine Q.Parser.parseVar
-				      Q.Parser.parseBracket))
+(define (Q.Parser.parseAddSub tokens kSuccess kError)
+  (define parseOperand Q.Parser.parseMulDiv)
+  (define (parseOperator tokens kSuccess kError)
+    (if (or (null? tokens)
+	    (not (or (Q.Token.Plus? (car tokens))
+		     (Q.Token.Minus? (car tokens)))))
+	(kError (list "")
+		tokens
+		(lambda () #f))
+	(kSuccess (cond
+		   [(Q.Token.Plus? (car tokens))
+		    Q.Expr.Add]
+		   [(Q.Token.Minus? (car tokens))
+		    Q.Expr.Sub]
+		   [else
+		    #f])
+		  (car tokens)
+		  (cdr tokens))))
 
-  (define parseArg (Q.Parser.combine Q.Parser.parseVar
-				     Q.Parser.parseInt
-				     Q.Parser.parseBracket))
-
-  (define (parseArgs tokens kSucc kFail kErr)
-    (parseArg tokens
-	      (lambda (a ts)
-		((Q.Parser.star parseArg)
-		 ts
-		 (lambda (as ts)
-		   (kSucc (cons a as)
-			  ts))
-		 kFail
-		 kErr))
-	      kFail
-	      kErr))
-
-  (parseFunc tokens
-	     (lambda (f ts)
-	       (if (null? ts)
-		   (kFail tokens)
-		   (parseArgs ts
-			      (lambda (as ts)
-				(kSucc (Q.fold Q.Expr.App f as)
-				       ts))
-			      kFail
-			      kErr)))
-	     kFail
-	     kErr))
+  (Q.Parser.parseBinop tokens parseOperand parseOperator kSuccess kError))
 
 
 
-(define (Q.Parser.parseVar tokens kSucc kFail kErr)
+(define (Q.Parser.parseMulDiv tokens kSuccess kError)
+  (define parseOperand (Q.Parser.choice Q.Parser.parseApp
+					Q.Parser.parseInt))
+  (define (parseOperator tokens kSuccess kError)
+    (if (or (null? tokens)
+	    (not (or (Q.Token.Star? (car tokens)))))
+	(kError (list "")
+		tokens
+		(lambda () #f))
+	(kSuccess (cond
+		   [(Q.Token.Star? (car tokens))
+		    Q.Expr.Mul]
+		   [else
+		    #f])
+		  (car tokens)
+		  (cdr tokens))))
+
+  (Q.Parser.parseBinop tokens parseOperand parseOperator kSuccess kError))
+
+
+(define (Q.Parser.parseApp tokens kSuccess kError)
+  (define parseFun (Q.Parser.choice Q.Parser.parseVar))
+
+  (define parseArg (Q.Parser.choice Q.Parser.parseVar
+				    Q.Parser.parseInt))
+
+  (parseFun tokens
+	    (lambda (f tokens)
+	      (let loop ([expr f]
+			 [tokens tokens])
+		(parseArg tokens
+			  (lambda (a tokens)
+			    (loop (Q.Expr.App expr a)
+				  tokens))
+			  (lambda _
+			    (kSuccess expr
+				      tokens)))))
+	    (lambda (msg tokens resume)
+	      (kError (list "While parsing application function"
+			    msg)
+		      tokens
+		      resume))))
+
+
+(define (Q.Parser.parseVar tokens kSuccess kError)
   (if (null? tokens)
-      (kErr "Unexpected EOF"
-	    tokens
-	    (lambda (tokens) #f))
-      (if (Q.Token.Ident? (car tokens))
-	  (kSucc (Q.Expr.Var (Q.Token.Ident:name (car tokens)))
-		 (cdr tokens))
-	  (kFail tokens))))
-
-(define (Q.Parser.parseInt tokens kSucc kFail kErr)
-  (if (null? tokens)
-      (kErr "Unexpected EOF"
-	    tokens
-	    (lambda (tokens) #f))
-      (if (Q.Token.Int? (car tokens))
-	  (kSucc (Q.Expr.Int (Q.Token.Int:value (car tokens)))
-		 (cdr tokens))
-	  (kFail tokens))))
-
-(define (Q.Parser.parseBracket tokens kSucc kFail kErr)
-  (Q.Parser.parseToken Q.Token.LP?
-		       tokens
-		       (lambda (_ ts)
-			 (Q.Parser.parseExpr ts
-					     (lambda (expr ts)
-					       (if (null? ts)
-						   (kErr "Missing )"
-							 ts
-							 (lambda _ #f))
-						   (Q.Parser.parseToken Q.Token.RP?
-									ts
-									(lambda (_ ts)
-									  (kSucc expr ts))
-									(lambda _
-									  (kErr "Missing )"
-										ts
-										(lambda _ #f)))
-									kErr)))
-					     (lambda _
-					       (kErr "Missing expr"
-						     ts
-						     (lambda _ #f)))
-					     kErr))
-		       kFail
-		       kErr))
-
-
-
-(define (Q.Parser.combine p . ps)
-  (if (null? ps)
-      p
-      (lambda (tokens kSucc kFail kErr)
-	(p tokens
-	   kSucc
-	   (lambda _
-	     ((apply Q.Parser.combine ps)
+      (kError (list "While parsing Q.Expr.Var"
+		    (list "Unexpected EOF"))
 	      tokens
-	      kSucc
-	      kFail
-	      kErr))
-	   kErr))))
+	      (lambda () (Q.Expr.Var "<EOF>")))
+      (if (Q.Token.Ident? (car tokens))
+	  (kSuccess (Q.Expr.Var (Q.Token.Ident:name (car tokens)))
+		    (cdr tokens))
+	  (kError (list "While parsing Q.Expr.Var"
+			(list (string-append "Expected identifier, got " (Q.Token->string (car tokens)))))
+		  tokens
+		  (lambda () (Q.Expr.Var "<unknown var>"))))))
 
 
-;; kSucc : [Q.Expr] -> [Q.Token] -> _
-;; kFail : [Q.Token] -> _
-;; kErr : [string] -> [Q.Token] -> ([Q.Token] -> _) -> _
-
-(define (Q.Parser.star p)
-  (lambda (tokens kSucc kFail kErr)
-    (let loop ([es (list)]
-	       [tokens tokens])
-      (let ([return (lambda (tokens)
-		      (kSucc (reverse es)
-			     tokens))])
-
-	(if (null? tokens)
-	    (return tokens)
-	    (p tokens
-	       (lambda (e tokens)
-		 (loop (cons e es)
-		       tokens))
-	       (lambda (tokens)
-		 (return tokens))
-	       kErr))))))
-
-
-
-
-;; kSucc : Q.Token -> [Q.Token] -> _
-;; kFail : [Q.Token] -> _
-;; kErr : [string] -> [Q.Token] -> ([Q.Token] -> _) -> _
-
-(define (Q.Parser.parseToken token? tokens kSucc kFail kErr)
+(define (Q.Parser.parseInt tokens kSuccess kError)
   (if (null? tokens)
-      (kErr "Unexpected EOF"
-	    tokens
-	    (lambda (tokens) #f))
-      (if (token? (car tokens))
-	  (kSucc (car tokens)
-		 (cdr tokens))
-	  (kFail tokens))))
+      (kError (list "While parsing Q.Expr.Int"
+		    (list "Unexpected EOF"))
+	      tokens
+	      (lambda () (Q.Expr.Var "<EOF>")))
+      (if (Q.Token.Int? (car tokens))
+	  (kSuccess (Q.Expr.Int (Q.Token.Int:value (car tokens)))
+		    (cdr tokens))
+	  (kError (list "While parsing Q.Expr.Int"
+			(list (string-append "Expected integer, got " (Q.Token->string (car tokens)))))
+		  tokens
+		  (lambda () (Q.Expr.Var "<unknown int>"))))))
 
 
-
-(define (Q.Parser.trace)
-  (trace Q.Parser.parseExpr
-	 Q.Parser.parseAdd
-	 Q.Parser.parseApp
-	 Q.Parser.parseVar
-	 Q.Parser.parseInt
-	 Q.Parser.parseBracket
-	 Q.Parser.parseToken))
+(define (Q.Parser.choice p . ps)
+  (lambda (tokens kSuccess kErrors)
+    (p tokens
+       kSuccess
+       (lambda (msg tokens resume)
+	 (if (null? ps)
+	     (kErrors (list msg)
+		      tokens
+		      resume)
+	     ((apply Q.Parser.choice ps)
+	      tokens
+	      kSuccess
+	      (lambda (msgs tokens _)
+		(kErrors (cons msg msgs)
+			 tokens
+			 resume))))))))
