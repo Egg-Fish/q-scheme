@@ -26,6 +26,8 @@
 
 (load "Expr.scm")
 (load "Expr/Add.scm")
+(load "Expr/Sub.scm")
+(load "Expr/Mul.scm")
 (load "Expr/App.scm")
 (load "Expr/Var.scm")
 (load "Expr/Int.scm")
