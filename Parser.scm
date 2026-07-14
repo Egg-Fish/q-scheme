@@ -1,12 +1,61 @@
 
 (define (Q.Parser.parse tokens)
-  (Q.Parser.parseAddSub tokens
-			(lambda (expr tokens)
-			  expr)
-			(lambda (msg tokens resume)
-			  (display msg)
-			  (newline)
-			  (resume))))
+  (Q.Parser.parseExpr tokens
+		      (lambda (expr tokens)
+			expr)
+		      (lambda (msg tokens resume)
+			(display msg)
+			(newline)
+			(resume))))
+
+
+(define (Q.Parser.parseExpr tokens kSuccess kError)
+  ((Q.Parser.choice Q.Parser.parseLam
+		    Q.Parser.parseAddSub) tokens kSuccess kError))
+
+
+(define (Q.Parser.parseToken token tokens kSuccess kError)
+  (if (null? tokens)
+      (kError (list "Unexpected EOF")
+	      tokens
+	      (lambda () #f))
+      (if (not (equal? token (car tokens)))
+	  (kError (list (string-append "Expected "
+				       (Q.Token->string token)
+				       ", got "
+				       (Q.Token->string (car tokens))))
+		  tokens
+		  (lambda () #f))
+	  (kSuccess (car tokens)
+		    (cdr tokens)))))
+
+
+(define (Q.Parser.parseLam tokens kSuccess kError)
+  (let ([kError (lambda (msg tokens resume)
+		  (kError (list "While parsing Q.Expr.Lam"
+				msg)
+			  tokens
+			  resume))])
+    (Q.Parser.parseToken (Q.Token.Backslash)
+			 tokens
+			 (lambda (_ tokens)
+			   (Q.Parser.parseVar tokens
+					      (lambda (param tokens)
+						(Q.Parser.parseToken (Q.Token.Arr)
+								     tokens
+								     (lambda (_ tokens)
+								       (Q.Parser.parseExpr tokens
+											   (lambda (body tokens)
+											     (kSuccess (Q.Expr.Lam param body)
+												       tokens))
+											   kError))
+								     kError))
+					      kError))
+			 kError)))
+
+
+
+
 
 
 (define (Q.Parser.parseBinop tokens
@@ -88,12 +137,11 @@
 
 
 (define (Q.Parser.parseApp tokens kSuccess kError)
-  (define parseFun (Q.Parser.choice Q.Parser.parseVar))
-
   (define parseArg (Q.Parser.choice Q.Parser.parseVar
-				    Q.Parser.parseInt))
+				    Q.Parser.parseInt
+				    Q.Parser.parseParens))
 
-  (parseFun tokens
+  (parseArg tokens
 	    (lambda (f tokens)
 	      (let loop ([expr f]
 			 [tokens tokens])
@@ -139,6 +187,49 @@
 			(list (string-append "Expected integer, got " (Q.Token->string (car tokens)))))
 		  tokens
 		  (lambda () (Q.Expr.Var "<unknown int>"))))))
+
+
+(define (Q.Parser.parseParens tokens kSuccess kError)
+  (if (null? tokens)
+      (kError (list "While parsing (Q.Expr)"
+		    (list "Unexpected EOF"))
+	      tokens
+	      (lambda () (Q.Expr.Var "<EOF>")))
+      (if (not (Q.Token.LP? (car tokens)))
+	  (kError (list "While parsing (Q.Expr)"
+			(list (string-append "Expected (, got " (Q.Token->string (car tokens)))))
+		  tokens
+		  (lambda ()
+		    (Q.Expr.parseExpr (cdr tokens)
+				      kSuccess
+				      kError)))
+	  (Q.Parser.parseExpr (cdr tokens)
+			      (lambda (expr tokens)
+				(cond
+				 [(null? tokens)
+				  (kError (list "While parsing (Q.Expr)"
+						(list "Unexpected EOF"))
+					  tokens
+					  (lambda () (Q.Expr.Var "<EOF>")))]
+				 
+				 [(not (Q.Token.RP? (car tokens)))
+				  (kError (list "While parsing (Q.Expr)"
+						(list (string-append "Expected ), got " (Q.Token->string (car tokens)))))
+					  tokens
+					  (lambda ()
+					    (kSuccess expr
+						      tokens)))]
+
+				 [else
+				  (kSuccess expr
+					    (cdr tokens))]))
+			      (lambda (msg tokens resume)
+				(kError (list "While parsing (Q.Expr)"
+					      msg)
+					tokens
+					resume))))))
+
+
 
 
 (define (Q.Parser.choice p . ps)

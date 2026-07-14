@@ -13,6 +13,7 @@
   (Q.fold f (car xs) (cdr xs)))
 
 (load "Token.scm")
+(load "Token/Backslash.scm")
 (load "Token/Arr.scm")
 (load "Token/Plus.scm")
 (load "Token/Minus.scm")
@@ -25,6 +26,7 @@
 (load "Lexer.scm")
 
 (load "Expr.scm")
+(load "Expr/Lam.scm")
 (load "Expr/Add.scm")
 (load "Expr/Sub.scm")
 (load "Expr/Mul.scm")

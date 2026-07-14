@@ -1,5 +1,6 @@
 (define (Q.Token? v)
-  (or (Q.Token.Arr? v)
+  (or (Q.Token.Backslash? v)
+      (Q.Token.Arr? v)
       (Q.Token.Plus? v)
       (Q.Token.Minus? v)
       (Q.Token.Star? v)
@@ -9,7 +10,8 @@
       (Q.Token.Int? v)))
 
 (define (Q.Token?? v)
-  (or (Q.Token.Arr?? v)
+  (or (Q.Token.Backslash?? v)
+      (Q.Token.Arr?? v)
       (Q.Token.Plus?? v)
       (Q.Token.Minus?? v)
       (Q.Token.Star?? v)
@@ -24,6 +26,8 @@
 	   "Not a Q.Token"
 	   t))
   (cond
+   [(Q.Token.Backslash? t)
+    (Q.Token.Backslash->string t)]
    [(Q.Token.Arr? t)
     (Q.Token.Arr->string t)]
    [(Q.Token.Plus? t)

@@ -18,6 +18,9 @@
      [(char-whitespace? c)
       (Q.Lexer.lexToken port)]
 
+     [(char=? c #\\)
+      (Q.Token.Backslash)]
+
      [(char=? c #\+)
       (Q.Token.Plus)]
 
@@ -26,8 +29,8 @@
 	(if (char=? d #\>)
 	    (begin
 	      (read-char port)
-	      Q.Token.Arr))
-	(Q.Token.Minus))]
+	      (Q.Token.Arr))
+	    (Q.Token.Minus)))]
 
      [(char=? c #\*)
       (Q.Token.Star)]
