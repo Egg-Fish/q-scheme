@@ -2,6 +2,8 @@
 (define (Q.Parser.parse tokens)
   (Q.Parser.parseExpr tokens
 		      (lambda (expr tokens)
+			(display (Q.Expr->string expr))
+			(newline)
 			expr)
 		      (lambda (msg tokens resume)
 			(display msg)

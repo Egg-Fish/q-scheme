@@ -40,11 +40,15 @@
 	 [lhsStr (Q.Expr->string lhs)]
 	 [rhs (Q.Expr.App:rhs e)]
 	 [rhsStr (Q.Expr->string rhs)])
-    (when (or (Q.Expr.Add? lhs)
-	      (Q.Expr.Sub? lhs))
+    (when (or (Q.Expr.Lam? lhs)
+	      (Q.Expr.Add? lhs)
+	      (Q.Expr.Sub? lhs)
+	      (Q.Expr.Mul? lhs))
       (set! lhsStr (string-append "(" lhsStr ")")))
-    (when (or (Q.Expr.Add? rhs)
+    (when (or (Q.Expr.Lam? rhs)
+	      (Q.Expr.Add? rhs)
 	      (Q.Expr.Sub? rhs)
+	      (Q.Expr.Mul? rhs)
 	      (Q.Expr.App? rhs))
       (set! rhsStr (string-append "(" rhsStr ")")))
     (string-append lhsStr " " rhsStr)))

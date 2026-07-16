@@ -40,4 +40,7 @@
 	 [paramStr (Q.Expr->string param)]
 	 [body (Q.Expr.Lam:body e)]
 	 [bodyStr (Q.Expr->string body)])
-    (string-append paramStr " - " bodyStr)))
+    (string-append "\\"
+		   paramStr
+		   " -> "
+		   bodyStr)))
