@@ -13,7 +13,7 @@
 
 (define (Q.Parser.parseExpr tokens kSuccess kError)
   ((Q.Parser.choice Q.Parser.parseLam
-		    Q.Parser.parseAddSub) tokens kSuccess kError))
+		    Q.Parser.parseEq) tokens kSuccess kError))
 
 
 (define (Q.Parser.parseToken token tokens kSuccess kError)
@@ -95,6 +95,25 @@
 			  resume))))
 
 
+(define (Q.Parser.parseEq tokens kSuccess kError)
+  (define parseOperand Q.Parser.parseAddSub)
+  (define (parseOperator tokens kSuccess kError)
+    (if (or (null? tokens)
+	    (not (or (Q.Token.Eq? (car tokens)))))
+	(kError (list "")
+		tokens
+		(lambda () #f))
+	(kSuccess (cond
+		   [(Q.Token.Eq? (car tokens))
+		    Q.Expr.Eq]
+		   [else
+		    #f])
+		  (car tokens)
+		  (cdr tokens))))
+
+  (Q.Parser.parseBinop tokens parseOperand parseOperator kSuccess kError))
+
+
 (define (Q.Parser.parseAddSub tokens kSuccess kError)
   (define parseOperand Q.Parser.parseMulDiv)
   (define (parseOperator tokens kSuccess kError)
@@ -115,7 +134,6 @@
 		  (cdr tokens))))
 
   (Q.Parser.parseBinop tokens parseOperand parseOperator kSuccess kError))
-
 
 
 (define (Q.Parser.parseMulDiv tokens kSuccess kError)

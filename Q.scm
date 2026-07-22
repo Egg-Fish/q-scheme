@@ -15,6 +15,7 @@
 (load "Token.scm")
 (load "Token/Backslash.scm")
 (load "Token/Arr.scm")
+(load "Token/Eq.scm")
 (load "Token/Plus.scm")
 (load "Token/Minus.scm")
 (load "Token/Star.scm")
@@ -27,6 +28,7 @@
 
 (load "Expr.scm")
 (load "Expr/Lam.scm")
+(load "Expr/Eq.scm")
 (load "Expr/Add.scm")
 (load "Expr/Sub.scm")
 (load "Expr/Mul.scm")

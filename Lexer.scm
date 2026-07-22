@@ -21,6 +21,9 @@
      [(char=? c #\\)
       (Q.Token.Backslash)]
 
+     [(char=? c #\=)
+      (Q.Token.Eq)]
+
      [(char=? c #\+)
       (Q.Token.Plus)]
 
