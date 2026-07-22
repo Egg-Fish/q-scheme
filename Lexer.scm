@@ -60,7 +60,15 @@
 	 [cs (cons c cs)]
 	 [s (list->string cs)]
 	 [name s])
-    (Q.Token.Ident name)))
+    (cond
+     [(string=? name "let")
+      (Q.Token.Let)]
+     
+     [(string=? name "in")
+      (Q.Token.In)]
+
+     [else
+      (Q.Token.Ident name)])))
 
 (define (Q.Lexer.lexInt c port)
   (let* ([cs (Q.Lexer.readWhile char-numeric? port)]

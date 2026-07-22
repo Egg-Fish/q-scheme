@@ -1,0 +1,1 @@
+let isZero = \n -> n = 0 in isZero 12

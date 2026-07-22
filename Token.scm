@@ -1,6 +1,8 @@
 (define (Q.Token? v)
   (or (Q.Token.Backslash? v)
       (Q.Token.Arr? v)
+      (Q.Token.Let? v)
+      (Q.Token.In? v)
       (Q.Token.Eq? v)
       (Q.Token.Plus? v)
       (Q.Token.Minus? v)
@@ -13,6 +15,8 @@
 (define (Q.Token?? v)
   (or (Q.Token.Backslash?? v)
       (Q.Token.Arr?? v)
+      (Q.Token.Let?? v)
+      (Q.Token.In?? v)
       (Q.Token.Eq?? v)
       (Q.Token.Plus?? v)
       (Q.Token.Minus?? v)
@@ -32,6 +36,10 @@
     (Q.Token.Backslash->string t)]
    [(Q.Token.Arr? t)
     (Q.Token.Arr->string t)]
+   [(Q.Token.Let? t)
+    (Q.Token.Let->string t)]
+   [(Q.Token.In? t)
+    (Q.Token.In->string t)]
    [(Q.Token.Eq? t)
     (Q.Token.Eq->string t)]
    [(Q.Token.Plus? t)

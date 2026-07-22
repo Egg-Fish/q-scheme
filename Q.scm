@@ -15,6 +15,8 @@
 (load "Token.scm")
 (load "Token/Backslash.scm")
 (load "Token/Arr.scm")
+(load "Token/Let.scm")
+(load "Token/In.scm")
 (load "Token/Eq.scm")
 (load "Token/Plus.scm")
 (load "Token/Minus.scm")
@@ -27,6 +29,7 @@
 (load "Lexer.scm")
 
 (load "Expr.scm")
+(load "Expr/Let.scm")
 (load "Expr/Lam.scm")
 (load "Expr/Eq.scm")
 (load "Expr/Add.scm")

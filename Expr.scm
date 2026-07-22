@@ -1,5 +1,6 @@
 (define (Q.Expr? v)
-  (or (Q.Expr.Lam? v)
+  (or (Q.Expr.Let? v)
+      (Q.Expr.Lam? v)
       (Q.Expr.Eq? v)
       (Q.Expr.Add? v)
       (Q.Expr.Sub? v)
@@ -9,7 +10,8 @@
       (Q.Expr.Int? v)))
 
 (define (Q.Expr?? v)
-  (or (Q.Expr.Lam?? v)
+  (or (Q.Expr.Let?? v)
+      (Q.Expr.Lam?? v)
       (Q.Expr.Eq?? v)
       (Q.Expr.Add?? v)
       (Q.Expr.Sub?? v)
@@ -25,6 +27,8 @@
 	   e))
 
   (cond
+   [(Q.Expr.Let? e)
+    (Q.Expr.Let->string e)]
    [(Q.Expr.Lam? e)
     (Q.Expr.Lam->string e)]
    [(Q.Expr.Eq? e)

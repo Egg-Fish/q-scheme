@@ -12,7 +12,8 @@
 
 
 (define (Q.Parser.parseExpr tokens kSuccess kError)
-  ((Q.Parser.choice Q.Parser.parseLam
+  ((Q.Parser.choice Q.Parser.parseLet
+		    Q.Parser.parseLam
 		    Q.Parser.parseEq) tokens kSuccess kError))
 
 
@@ -32,32 +33,69 @@
 		    (cdr tokens)))))
 
 
+(define (Q.Parser.parseLet tokens kSuccess kError)
+  (let ([kError (lambda (msg tokens resume)
+		  (kError (list "While parsing Q.Expr.Let"
+				msg)
+			  tokens
+			  resume))])
+    (Q.Parser.parseToken
+     (Q.Token.Let)
+     tokens
+     (lambda (_ tokens)
+       (Q.Parser.parseVar
+	tokens
+	(lambda (lhs tokens)
+	  (Q.Parser.parseToken
+	   (Q.Token.Eq)
+	   tokens
+	   (lambda (_ tokens)
+	     (Q.Parser.parseExpr
+	      tokens
+	      (lambda (rhs tokens)
+		(Q.Parser.parseToken
+		 (Q.Token.In)
+		 tokens
+		 (lambda (_ tokens)
+		   (Q.Parser.parseExpr
+		    tokens
+		    (lambda (body tokens)
+		      (kSuccess (Q.Expr.Let lhs rhs body)
+				tokens))
+		    kError))
+		 kError))
+	      kError))
+	   kError))
+	kError))
+     kError)))
+
+
 (define (Q.Parser.parseLam tokens kSuccess kError)
   (let ([kError (lambda (msg tokens resume)
 		  (kError (list "While parsing Q.Expr.Lam"
 				msg)
 			  tokens
 			  resume))])
-    (Q.Parser.parseToken (Q.Token.Backslash)
-			 tokens
-			 (lambda (_ tokens)
-			   (Q.Parser.parseVar tokens
-					      (lambda (param tokens)
-						(Q.Parser.parseToken (Q.Token.Arr)
-								     tokens
-								     (lambda (_ tokens)
-								       (Q.Parser.parseExpr tokens
-											   (lambda (body tokens)
-											     (kSuccess (Q.Expr.Lam param body)
-												       tokens))
-											   kError))
-								     kError))
-					      kError))
-			 kError)))
-
-
-
-
+    (Q.Parser.parseToken
+     (Q.Token.Backslash)
+     tokens
+     (lambda (_ tokens)
+       (Q.Parser.parseVar
+	tokens
+	(lambda (param tokens)
+	  (Q.Parser.parseToken
+	   (Q.Token.Arr)
+	   tokens
+	   (lambda (_ tokens)
+	     (Q.Parser.parseExpr
+	      tokens
+	      (lambda (body tokens)
+		(kSuccess (Q.Expr.Lam param body)
+			  tokens))
+	      kError))
+	   kError))
+	kError))
+     kError)))
 
 
 (define (Q.Parser.parseBinop tokens
@@ -82,7 +120,7 @@
 										  (Q.Token->string t))
 								   msg)
 							     tokens
-							     (lambda ()
+q							     (lambda ()
 							       (loop expr
 								     tokens))))))
 				   (lambda _
@@ -256,7 +294,7 @@
   (lambda (tokens kSuccess kErrors)
     (p tokens
        kSuccess
-       (lambda (msg tokens resume)
+       (lambda (msg _ resume)
 	 (if (null? ps)
 	     (kErrors (list msg)
 		      tokens
