@@ -67,6 +67,12 @@
      [(string=? name "in")
       (Q.Token.In)]
 
+     [(string=? name "true")
+      (Q.Token.Bool #t)]
+
+     [(string=? name "false")
+      (Q.Token.Bool #f)]
+
      [else
       (Q.Token.Ident name)])))
 

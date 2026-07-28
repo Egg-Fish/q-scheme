@@ -175,8 +175,7 @@ q							     (lambda ()
 
 
 (define (Q.Parser.parseMulDiv tokens kSuccess kError)
-  (define parseOperand (Q.Parser.choice Q.Parser.parseApp
-					Q.Parser.parseInt))
+  (define parseOperand Q.Parser.parseApp)
   (define (parseOperator tokens kSuccess kError)
     (if (or (null? tokens)
 	    (not (or (Q.Token.Star? (car tokens)))))
@@ -197,6 +196,7 @@ q							     (lambda ()
 (define (Q.Parser.parseApp tokens kSuccess kError)
   (define parseArg (Q.Parser.choice Q.Parser.parseVar
 				    Q.Parser.parseInt
+				    Q.Parser.parseBool
 				    Q.Parser.parseParens))
 
   (parseArg tokens
@@ -245,6 +245,21 @@ q							     (lambda ()
 			(list (string-append "Expected integer, got " (Q.Token->string (car tokens)))))
 		  tokens
 		  (lambda () (Q.Expr.Var "<unknown int>"))))))
+
+
+(define (Q.Parser.parseBool tokens kSuccess kError)
+  (if (null? tokens)
+      (kError (list "While parsing Q.Expr.Bool"
+		    (list "Unexpected EOF"))
+	      tokens
+	      (lambda () (Q.Expr.Var "<EOF>")))
+      (if (Q.Token.Bool? (car tokens))
+	  (kSuccess (Q.Expr.Bool (Q.Token.Bool:value (car tokens)))
+		    (cdr tokens))
+	  (kError (list "While parsing Q.Expr.Bool"
+			(list (string-append "Expected boolean, got " (Q.Token->string (car tokens)))))
+		  tokens
+		  (lambda () (Q.Expr.Var "<unknown bool>"))))))
 
 
 (define (Q.Parser.parseParens tokens kSuccess kError)

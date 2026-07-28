@@ -10,7 +10,8 @@
       (Q.Token.LP? v)
       (Q.Token.RP? v)
       (Q.Token.Ident? v)
-      (Q.Token.Int? v)))
+      (Q.Token.Int? v)
+      (Q.Token.Bool? v)))
 
 (define (Q.Token?? v)
   (or (Q.Token.Backslash?? v)
@@ -24,7 +25,8 @@
       (Q.Token.LP?? v)
       (Q.Token.RP?? v)
       (Q.Token.Ident?? v)
-      (Q.Token.Int?? v)))
+      (Q.Token.Int?? v)
+      (Q.Token.Bool?? v)))
 
 (define (Q.Token->string t)
   (unless (Q.Token? t)
@@ -56,6 +58,8 @@
     (Q.Token.Ident->string t)]
    [(Q.Token.Int? t)
     (Q.Token.Int->string t)]
+   [(Q.Token.Bool? t)
+    (Q.Token.Bool->string t)]
    [else
     (error 'Q.Token->string
 	   "Exhausted"

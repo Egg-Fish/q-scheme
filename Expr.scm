@@ -7,7 +7,8 @@
       (Q.Expr.Mul? v)
       (Q.Expr.App? v)
       (Q.Expr.Var? v)
-      (Q.Expr.Int? v)))
+      (Q.Expr.Int? v)
+      (Q.Expr.Bool? v)))
 
 (define (Q.Expr?? v)
   (or (Q.Expr.Let?? v)
@@ -18,7 +19,8 @@
       (Q.Expr.Mul?? v)
       (Q.Expr.App?? v)
       (Q.Expr.Var?? v)
-      (Q.Expr.Int?? v)))
+      (Q.Expr.Int?? v)
+      (Q.Expr.Bool?? v)))
 
 (define (Q.Expr->string e)
   (unless (Q.Expr? e)
@@ -45,6 +47,8 @@
     (Q.Expr.Var->string e)]
    [(Q.Expr.Int? e)
     (Q.Expr.Int->string e)]
+   [(Q.Expr.Bool? e)
+    (Q.Expr.Bool->string e)]
    [else
     (error 'Q.Expr->string
 	   "Exhausted"

@@ -25,6 +25,7 @@
 (load "Token/RP.scm")
 (load "Token/Ident.scm")
 (load "Token/Int.scm")
+(load "Token/Bool.scm")
 
 (load "Lexer.scm")
 
@@ -38,5 +39,17 @@
 (load "Expr/App.scm")
 (load "Expr/Var.scm")
 (load "Expr/Int.scm")
+(load "Expr/Bool.scm")
 
 (load "Parser.scm")
+
+(load "Normalizer.scm")
+
+
+(define (Q.compile filename)
+  (let ([tokens (Q.Lexer.lexFile filename)])
+    (let ([expr (Q.Parser.parse tokens)])
+      (let ([norm (Q.Normalizer.normalize expr)])
+	(display (Q.Expr->string norm))
+	(newline)
+	norm))))
