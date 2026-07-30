@@ -43,13 +43,31 @@
 
 (load "Parser.scm")
 
+(load "Type.scm")
+(load "Type/Fun.scm")
+(load "Type/Int.scm")
+(load "Type/Bool.scm")
+
+(load "Typechecker.scm")
+
 (load "Normalizer.scm")
 
 
 (define (Q.compile filename)
   (let ([tokens (Q.Lexer.lexFile filename)])
     (let ([expr (Q.Parser.parse tokens)])
-      (let ([norm (Q.Normalizer.normalize expr)])
-	(display (Q.Expr->string norm))
+      (display (string-append "Expr: " (Q.Expr->string expr)))
+      (newline)
+      (let ([type (Q.Typechecker.typecheck expr)])
+	(display (string-append "Type: " (Q.Type->string type)))
 	(newline)
-	norm))))
+	(let ([norm (Q.Normalizer.normalize expr)])
+	  (display (string-append "Normalized Expr: " (Q.Expr->string norm)))
+	  (newline)
+	  norm)))))
+
+(define (Q.lexAndParse filename)
+  (Q.Parser.parse (Q.Lexer.lexFile filename)))
+
+(define (Q.typecheck filename)
+  (Q.Typechecker.typecheck (Q.lexAndParse filename)))
